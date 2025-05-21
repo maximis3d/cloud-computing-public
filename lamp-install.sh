@@ -2,16 +2,11 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
-# Variables (ideally injected securely)
 MYSQL_ROOT_PASSWORD='YourRootPasswordHere'
-PROJECTS_DB_USER='projects_user'
-PROJECTS_DB_PASSWORD='UserPasswordHere'
 PROJECTS_DB_NAME='projects'
 
 echo "⏳ Waiting for apt to unlock..."
-while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-  sleep 1
-done
+while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 1; done
 
 echo "📦 Updating packages..."
 sudo apt-get update -y
@@ -32,12 +27,9 @@ sudo mysql <<-EOF
   FLUSH PRIVILEGES;
 EOF
 
-echo "🗄️ Creating database and user for projects app..."
+echo "🗄️ Creating database for projects app..."
 sudo mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" <<-EOF
   CREATE DATABASE IF NOT EXISTS \`${PROJECTS_DB_NAME}\`;
-  CREATE USER IF NOT EXISTS '${PROJECTS_DB_USER}'@'localhost' IDENTIFIED BY '${PROJECTS_DB_PASSWORD}';
-  GRANT ALL PRIVILEGES ON \`${PROJECTS_DB_NAME}\`.* TO '${PROJECTS_DB_USER}'@'localhost';
-  FLUSH PRIVILEGES;
 EOF
 
 echo "⬇️ Downloading project ZIP..."
