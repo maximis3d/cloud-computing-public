@@ -6,7 +6,9 @@ MYSQL_ROOT_PASSWORD='NewRootPassword123!'
 PROJECTS_DB_NAME='projects'
 
 echo "⏳ Waiting for apt to unlock..."
-while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 1; done
+while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1 || sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+  sleep 1
+done
 
 echo "📦 Updating packages..."
 sudo apt-get update -y
@@ -50,20 +52,10 @@ sudo rm -rf /var/www/html/*
 sudo cp -r ./cloud-computing/* /var/www/html/
 sudo chown -R www-data:www-data /var/www/html
 
-echo "🔒 Creating .htaccess to restrict direct file access..."
-sudo tee /var/www/html/.htaccess > /dev/null <<'EOF'
-<FilesMatch "^(index\.php|project\.php)$">
-    Require all granted
-</FilesMatch>
-
-<FilesMatch ".*">
-    Require all denied
-</FilesMatch>
-EOF
-
 echo "🧱 Configuring firewall..."
 sudo ufw allow OpenSSH || true
 sudo ufw allow 'Apache Full' || true
 sudo ufw --force enable || true
 
-echo "✅ Deployment complete. Visit: http://$(hostname -I | awk '{print $1}')"
+IP_ADDR=$(hostname -I | awk '{print $1}')
+echo "✅ Deployment complete. Visit: http://$IP_ADDR"
