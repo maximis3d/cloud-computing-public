@@ -2,7 +2,7 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
-MYSQL_ROOT_PASSWORD='YourRootPasswordHere'
+MYSQL_ROOT_PASSWORD='NewRootPassword123!'
 PROJECTS_DB_NAME='projects'
 
 echo "⏳ Waiting for apt to unlock..."
