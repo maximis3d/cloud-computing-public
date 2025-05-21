@@ -24,26 +24,6 @@ sudo systemctl enable --now apache2 || echo "Apache2 failed to enable/start"
 sudo systemctl enable --now mysql || echo "MySQL failed to enable/start"
 
 echo "🔐 Securing MySQL root user and removing test DBs..."
-
-
-echo "🧱 Configuring firewall..."
-sudo ufw allow OpenSSH || true
-sudo ufw allow 'Apache Full' || true
-sudo ufw --force enable || true
-
-# Download and deploy app code
-TEMP_DIR="/tmp/github-zip"
-ZIP_URL="https://raw.githubusercontent.com/maximis3d/cloud-computing-public/main/cloud-computing.zip"
-
-mkdir -p "$TEMP_DIR"
-cd "$TEMP_DIR"
-
-echo "⬇️ Downloading project ZIP..."
-curl -L "$ZIP_URL" -o cloud-computing.zip
-
-mkdir -p cloud-computing
-unzip cloud-computing.zip -d cloud-computing
-
 sudo mysql <<-EOF
   ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${MYSQL_ROOT_PASSWORD}';
   DELETE FROM mysql.user WHERE User='';
@@ -60,11 +40,27 @@ sudo mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" <<-EOF
   FLUSH PRIVILEGES;
 EOF
 
-sudo mysql -uroot -p"${MYSQL_ROOT_PASSWORD} projects < ./cloud-computing/sql/projects.sql" 
+echo "⬇️ Downloading project ZIP..."
+TEMP_DIR="/tmp/github-zip"
+ZIP_URL="https://raw.githubusercontent.com/maximis3d/cloud-computing-public/main/cloud-computing.zip"
+mkdir -p "$TEMP_DIR"
+cd "$TEMP_DIR"
+curl -L "$ZIP_URL" -o cloud-computing.zip
 
-echo "🧹 Cleaning /var/www/html..."
+mkdir -p cloud-computing
+unzip -o cloud-computing.zip -d cloud-computing
+
+echo "🧹 Importing SQL schema..."
+sudo mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" "${PROJECTS_DB_NAME}" < ./cloud-computing/sql/projects.sql
+
+echo "🧹 Cleaning /var/www/html and deploying app..."
 sudo rm -rf /var/www/html/*
 sudo cp -r ./cloud-computing/* /var/www/html/
 sudo chown -R www-data:www-data /var/www/html
+
+echo "🧱 Configuring firewall..."
+sudo ufw allow OpenSSH || true
+sudo ufw allow 'Apache Full' || true
+sudo ufw --force enable || true
 
 echo "✅ Deployment complete. Visit: http://$(hostname -I | awk '{print $1}')"
