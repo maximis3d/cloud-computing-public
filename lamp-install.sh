@@ -50,6 +50,17 @@ sudo rm -rf /var/www/html/*
 sudo cp -r ./cloud-computing/* /var/www/html/
 sudo chown -R www-data:www-data /var/www/html
 
+echo "🔒 Creating .htaccess to restrict direct file access..."
+sudo tee /var/www/html/.htaccess > /dev/null <<'EOF'
+<FilesMatch "^(index\.php|project\.php)$">
+    Require all granted
+</FilesMatch>
+
+<FilesMatch ".*">
+    Require all denied
+</FilesMatch>
+EOF
+
 echo "🧱 Configuring firewall..."
 sudo ufw allow OpenSSH || true
 sudo ufw allow 'Apache Full' || true
