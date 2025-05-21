@@ -34,7 +34,7 @@ echo "⬇️ Downloading project ZIP..."
 curl -L "$ZIP_URL" -o cloud-computing.zip
 
 mkdir -p cloud-computing
-unzip cloud-computing.zip -d cloud-computin
+unzip cloud-computing.zip -d cloud-computing
 
 echo "🧹 Cleaning /var/www/html..."
 sudo rm -rf /var/www/html/*
