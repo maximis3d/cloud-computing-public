@@ -2,7 +2,12 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
-# Wait for apt to be fully ready
+# Variables (ideally injected securely)
+MYSQL_ROOT_PASSWORD='YourRootPasswordHere'
+PROJECTS_DB_USER='projects_user'
+PROJECTS_DB_PASSWORD='UserPasswordHere'
+PROJECTS_DB_NAME='projects'
+
 echo "⏳ Waiting for apt to unlock..."
 while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
   sleep 1
@@ -18,12 +23,15 @@ echo "🚀 Enabling and starting services..."
 sudo systemctl enable --now apache2 || echo "Apache2 failed to enable/start"
 sudo systemctl enable --now mysql || echo "MySQL failed to enable/start"
 
+echo "🔐 Securing MySQL root user and removing test DBs..."
+
+
 echo "🧱 Configuring firewall..."
 sudo ufw allow OpenSSH || true
 sudo ufw allow 'Apache Full' || true
 sudo ufw --force enable || true
 
-# Download and deploy code
+# Download and deploy app code
 TEMP_DIR="/tmp/github-zip"
 ZIP_URL="https://raw.githubusercontent.com/maximis3d/cloud-computing-public/main/cloud-computing.zip"
 
@@ -35,6 +43,24 @@ curl -L "$ZIP_URL" -o cloud-computing.zip
 
 mkdir -p cloud-computing
 unzip cloud-computing.zip -d cloud-computing
+
+sudo mysql <<-EOF
+  ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${MYSQL_ROOT_PASSWORD}';
+  DELETE FROM mysql.user WHERE User='';
+  DROP DATABASE IF EXISTS test;
+  DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+  FLUSH PRIVILEGES;
+EOF
+
+echo "🗄️ Creating database and user for projects app..."
+sudo mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" <<-EOF
+  CREATE DATABASE IF NOT EXISTS \`${PROJECTS_DB_NAME}\`;
+  CREATE USER IF NOT EXISTS '${PROJECTS_DB_USER}'@'localhost' IDENTIFIED BY '${PROJECTS_DB_PASSWORD}';
+  GRANT ALL PRIVILEGES ON \`${PROJECTS_DB_NAME}\`.* TO '${PROJECTS_DB_USER}'@'localhost';
+  FLUSH PRIVILEGES;
+EOF
+
+sudo mysql -uroot -p"${MYSQL_ROOT_PASSWORD} projects < ./cloud-computing/sql/projects.sql" 
 
 echo "🧹 Cleaning /var/www/html..."
 sudo rm -rf /var/www/html/*
